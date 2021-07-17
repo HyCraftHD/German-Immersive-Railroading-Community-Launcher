@@ -12,15 +12,12 @@ import java.nio.file.StandardCopyOption;
 import com.google.gson.Gson;
 import com.troblecodings.launcher.Launcher;
 
-import net.cydhra.nidhogg.data.Session;
 
 public class FileUtil {
 
 	public static SettingsData SETTINGS = new SettingsData();
 	public static String ASSET_DIR = null;
 	public static String LIB_DIR = null;
-
-	public static Session DEFAULT = null;
 
 	public static Path REMEMBERFILE;
 
@@ -132,7 +129,6 @@ public class FileUtil {
 		LIB_DIR = setCreateIfNotExists(SETTINGS.baseDir + "/libraries");
 
 		REMEMBERFILE = Paths.get(SETTINGS.baseDir + "/ac.ce");
-		DEFAULT = CryptoUtil.readEncrypted(REMEMBERFILE, Session.class);
 	}
 
 	// Delete option files and mod, assets and libraries folder

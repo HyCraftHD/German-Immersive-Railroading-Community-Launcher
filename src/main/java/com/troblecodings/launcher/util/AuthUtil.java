@@ -9,58 +9,55 @@ import org.json.JSONObject;
 
 import com.troblecodings.launcher.Launcher;
 
-import javafx.application.Platform;
-import net.cydhra.nidhogg.MojangClient;
-import net.cydhra.nidhogg.YggdrasilAgent;
-import net.cydhra.nidhogg.YggdrasilClient;
-import net.cydhra.nidhogg.data.AccountCredentials;
-import net.cydhra.nidhogg.data.Profile;
-import net.cydhra.nidhogg.data.Session;
+import net.hycrafthd.minecraft_authenticator.login.AuthenticationException;
+import net.hycrafthd.minecraft_authenticator.login.AuthenticationFile;
+import net.hycrafthd.minecraft_authenticator.login.Authenticator;
+import net.hycrafthd.minecraft_authenticator.login.User;
 
 public class AuthUtil {
+	
+	public static AuthenticationFile loadAuthenticationFile() {
+			return CryptoUtil.readEncrypted(FileUtil.REMEMBERFILE, AuthenticationFile.class);
+	}
 
-	private static YggdrasilClient client = new YggdrasilClient();
-	private static MojangClient mclient = new MojangClient();
-
-	public static String[] START_PARAMS = null;
-
-	public static Session auth(final String username, final String passw) {
-		Session session = FileUtil.DEFAULT;
-
-		if (session == null) {
-			if (username == null || passw == null)
-				return null;
-			session = client.login(new AccountCredentials(username, passw), YggdrasilAgent.MINECRAFT);
-			CryptoUtil.saveEncrypted(FileUtil.REMEMBERFILE, session);
+	public static void saveAuthenticationFile(AuthenticationFile file) {
+		CryptoUtil.saveEncrypted(FileUtil.REMEMBERFILE, file);
+	}
+	
+	public static boolean checkSession() {
+		final AuthenticationFile file = loadAuthenticationFile();
+		if(file == null) {
+			return false;
 		}
-
 		try {
-			if (client.validate(session))
-				return session;
-		} catch (Throwable e) {
-			try {
-				client.refresh(session);
-				CryptoUtil.saveEncrypted(FileUtil.REMEMBERFILE, session);
-				return session;
-			} catch (Throwable ex) {
-				Platform.runLater(() -> {
-					FileUtil.DEFAULT = null;
-					Launcher.setScene(Launcher.LOGINSCENE);
-				});
-				Launcher.onError(ex);
-			}
-			Launcher.onError(e);
+			final Authenticator authenticator = Authenticator.of(file).shouldAuthenticate().run();
+			saveAuthenticationFile(authenticator.getResultFile());
+			return authenticator.getUser().isPresent();
+		} catch (AuthenticationException ex) {
+			return false;
 		}
-		return session;
+	}
+	
+	public static User authenticate() {
+		final AuthenticationFile file = loadAuthenticationFile();
+		if(file == null) {
+			return null;
+		}
+		try {
+			final Authenticator authenticator = Authenticator.of(file).shouldAuthenticate().run();
+			saveAuthenticationFile(authenticator.getResultFile());
+			return authenticator.getUser().get();
+		} catch (AuthenticationException ex) {
+			Launcher.onError(ex);
+			return null;
+		}
 	}
 	
 	public static void logout() {
-		client.invalidate(FileUtil.DEFAULT);
-		FileUtil.DEFAULT = null;
 		try {
 			Files.deleteIfExists(FileUtil.REMEMBERFILE);
-		} catch (IOException e) {
-			Launcher.onError(e);
+		} catch (IOException ex) {
+			Launcher.onError(ex);
 		}
 		Launcher.setScene(Launcher.LOGINSCENE);
 	}
@@ -74,12 +71,11 @@ public class AuthUtil {
 		return def;
 	}
 
-	public static String[] make(final Session session, final JSONObject json) {
+	public static String[] make(final User session, final JSONObject json) {
 		if(session == null)
 			return null;
-		Profile profile = mclient.getProfileByUUID(session.getUuid());
 		Map<String, String> list = new HashMap<>();
-		list.put("${auth_player_name}", profile.getName());
+		list.put("${auth_player_name}", session.getName());
 		list.put("${version_name}", getOrDefault(json, "id", "1.12.2"));
 		list.put("${game_directory}", FileUtil.SETTINGS.baseDir);
 		list.put("${assets_root}", FileUtil.ASSET_DIR);
@@ -87,7 +83,7 @@ public class AuthUtil {
 		list.put("${assets_index_name}", getOrDefault(obj, "id", "1.12"));
 		list.put("${auth_uuid}", session.getUuid().toString());
 		list.put("${auth_access_token}", session.getAccessToken());
-		list.put("${user_type}", "mojang");
+		list.put("${user_type}", session.getType());
 
 		String[] arguments = getOrDefault(json, "minecraftArguments", DEFAULT_ARGS).split(" ");
 		for (int i = 0; i < arguments.length; i++) {

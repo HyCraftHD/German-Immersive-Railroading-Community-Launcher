@@ -321,7 +321,7 @@ public class StartupUtil {
 					});
 
 			Footer.setProgress(0.001);
-			return AuthUtil.make(AuthUtil.auth(null, null), object);
+			return AuthUtil.make(AuthUtil.authenticate(), object);
 		} catch (Throwable e) {
 			Launcher.onError(e);
 			return null;

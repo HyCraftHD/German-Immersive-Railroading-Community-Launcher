@@ -9,6 +9,8 @@ import com.troblecodings.launcher.javafx.Footer;
 import com.troblecodings.launcher.javafx.Header;
 import com.troblecodings.launcher.javafx.HomeScene;
 import com.troblecodings.launcher.javafx.LoginScene;
+import com.troblecodings.launcher.javafx.MicrosoftLoginScene;
+import com.troblecodings.launcher.javafx.MojangLoginScene;
 import com.troblecodings.launcher.javafx.OptionsScene;
 import com.troblecodings.launcher.util.AuthUtil;
 import com.troblecodings.launcher.util.FileUtil;
@@ -27,6 +29,8 @@ public class Launcher extends Application {
 	public static HomeScene HOMESCENE;
 	public static OptionsScene OPTIONSSCENE;
 	public static LoginScene LOGINSCENE;
+	public static MojangLoginScene MOJANGLOGINSCENE;
+	public static MicrosoftLoginScene MICROSOFTSCENE;
 	public static CreditsScene CREDITSSCENE;
 	
 	private static Logger LOGGER;
@@ -50,11 +54,13 @@ public class Launcher extends Application {
 		OPTIONSSCENE = new OptionsScene();
 		HOMESCENE = new HomeScene();
 		LOGINSCENE = new LoginScene();
+		MOJANGLOGINSCENE = new MojangLoginScene();
+		MICROSOFTSCENE = new MicrosoftLoginScene();
 		CREDITSSCENE = new CreditsScene();
 				 
 		Launcher.stage = stage;
 		stage.getIcons().add(Assets.getImage("icon.png"));
-		stage.setScene(AuthUtil.auth(null, null) == null ? LOGINSCENE:HOMESCENE);
+		stage.setScene(!AuthUtil.checkSession() ? LOGINSCENE:HOMESCENE);
 		stage.setWidth(1280);
 		stage.setHeight(720);
 		stage.initStyle(StageStyle.TRANSPARENT);
